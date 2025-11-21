@@ -47,11 +47,26 @@ app.get('/api/search', async (req, res) => {
     console.log(`Searching for: ${keyword}`);
 
     try {
-        const [daangnResults, bunjangResults, joongnaResults] = await Promise.all([
-            daangnScraper.search(keyword),
-            bunjangScraper.search(keyword),
-            joongnaScraper.search(keyword)
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Search timeout')), 40000)
+        );
+
+        const results = await Promise.race([
+            Promise.allSettled([
+                daangnScraper.search(keyword),
+                bunjangScraper.search(keyword),
+                joongnaScraper.search(keyword)
+            ]),
+            timeoutPromise
         ]);
+
+        const daangnResults = results[0].status === 'fulfilled' ? results[0].value : [];
+        const bunjangResults = results[1].status === 'fulfilled' ? results[1].value : [];
+        const joongnaResults = results[2].status === 'fulfilled' ? results[2].value : [];
+
+        if (results[0].status === 'rejected') console.error('[Daangn] Search failed:', results[0].reason);
+        if (results[1].status === 'rejected') console.error('[Bunjang] Search failed:', results[1].reason);
+        if (results[2].status === 'rejected') console.error('[Joongna] Search failed:', results[2].reason);
 
         const allResults = [
             ...daangnResults.map(item => ({ ...item, platform: 'daangn' })),

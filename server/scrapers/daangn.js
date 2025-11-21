@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const { parseTime } = require('../utils/timeParser');
 
 async function search(keyword) {
+
     console.log(`[Daangn] Searching for ${keyword}...`);
     let browser;
     try {
