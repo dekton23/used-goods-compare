@@ -27,34 +27,17 @@ async function search(keyword) {
             anchors.forEach(anchor => {
                 try {
                     const textContent = anchor.innerText;
-                    const lines = textContent.split('\n').map(l => l.trim()).filter(l => l);
+                    const lines = textContent.split('\n');
 
                     let title = '';
                     let price = '';
                     let region = '';
                     let timeStr = '';
 
-                    // 가격 패턴: 숫자와 쉼표로만 이루어진 문자열 (원 포함 가능)
-                    // 예: "488,000", "90,000", "200,000원"
-                    const pricePattern = /^[\d,]+원?$/;
-
                     if (lines.length >= 2) {
                         title = lines[0];
-
-                        // 가격 찾기: 숫자와 쉼표로만 이루어진 라인 찾기
-                        price = lines.find(l => pricePattern.test(l));
-
-                        // 가격을 찾지 못했으면 숫자가 포함된 짧은 라인 찾기 (fallback)
-                        if (!price) {
-                            price = lines.find(l => /^\d{1,3}(,\d{3})*원?$/.test(l));
-                        }
-
-                        // 가격이 없으면 건너뛰기
-                        if (!price) {
-                            return;
-                        }
-
-                        region = lines.find(l => !pricePattern.test(l) && l !== title && l.length < 20) || '전국';
+                        price = lines.find(l => l.includes(',') || l.includes('원')) || lines[1];
+                        region = lines.find(l => !l.includes(',') && !l.includes('원') && l !== title) || '전국';
                     }
 
                     // Specific selector for time based on inspection

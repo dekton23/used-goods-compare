@@ -17,14 +17,7 @@ initDatabase();
 function calculateStats(items) {
     const prices = items
         .map(item => parseInt(item.price.replace(/[^0-9]/g, '')))
-        .filter(p => {
-            // 비정상적인 가격 필터링
-            // - NaN 제거
-            // - 0원 이하 제거
-            // - 100원 미만 제거 (파싱 오류 가능성)
-            // - 1억원 초과 제거 (중고 거래에서 비현실적)
-            return !isNaN(p) && p >= 100 && p <= 100000000;
-        })
+        .filter(p => !isNaN(p) && p > 0)
         .sort((a, b) => a - b);
 
     if (prices.length === 0) return { min: 0, max: 0, avg: 0, median: 0 };
@@ -54,36 +47,18 @@ app.get('/api/search', async (req, res) => {
     console.log(`Searching for: ${keyword}`);
 
     try {
-        // 1단계: 당근마켓 + 번개장터 동시 실행 (메모리 최적화)
-        console.log('[Stage 1] Running Daangn + Bunjang...');
-        const firstBatch = await Promise.allSettled([
-            Promise.race([
-                daangnScraper.search(keyword),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Daangn timeout')), 15000)
-                )
-            ]),
-            Promise.race([
-                bunjangScraper.search(keyword),
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Bunjang timeout')), 15000)
-                )
-            ])
-        ]);
-
-        // 2단계: 중고나라 실행
-        console.log('[Stage 2] Running Joongna...');
-        const joongnaResult = await Promise.race([
-            joongnaScraper.search(keyword),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Joongna timeout')), 15000)
-            )
-        ]).then(
-            result => ({ status: 'fulfilled', value: result }),
-            error => ({ status: 'rejected', reason: error })
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Search timeout')), 40000)
         );
 
-        const results = [...firstBatch, joongnaResult];
+        const results = await Promise.race([
+            Promise.allSettled([
+                daangnScraper.search(keyword),
+                bunjangScraper.search(keyword),
+                joongnaScraper.search(keyword)
+            ]),
+            timeoutPromise
+        ]);
 
         const daangnResults = results[0].status === 'fulfilled' ? results[0].value : [];
         const bunjangResults = results[1].status === 'fulfilled' ? results[1].value : [];
