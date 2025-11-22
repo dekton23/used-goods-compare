@@ -53,6 +53,18 @@ app.get('/api/search', async (req, res) => {
 
     console.log(`Searching for: ${keyword}`);
 
+    // Memory Cleanup
+    if (global.gc) {
+        try {
+            console.log('Running manual garbage collection...');
+            global.gc();
+        } catch (e) {
+            console.error('Manual GC failed:', e);
+        }
+    }
+    const used = process.memoryUsage().heapUsed / 1024 / 1024;
+    console.log(`Current Heap Usage: ${Math.round(used * 100) / 100} MB`);
+
     try {
         // 1단계: 당근마켓 + 번개장터 동시 실행 (메모리 최적화)
         console.log('[Stage 1] Running Daangn + Bunjang...');

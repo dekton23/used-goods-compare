@@ -80,7 +80,7 @@ const SearchPage = () => {
 
             {results.stats && (
                 <>
-                    <PriceChart stats={results.stats} items={filteredItems} />
+                    <PriceChart stats={results.stats} />
 
                     <div className="flex justify-center gap-4 mb-8">
                         <button
